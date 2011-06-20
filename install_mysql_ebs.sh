@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Adopted from @offbytwo, Cosmin, and his original presentation for pycon 2011.
+# Adopted from Cosmin/@offbytwo/offbytwo.com, and his original presentation for pycon 2011.
 
 VOLUME=$1
 
@@ -13,7 +13,7 @@ if [ -z $VOLUME ]; then
     exit 1;
 fi
 
-echo "*** Installing MySQL (with no root password) ***" #TODO: set up prompting for password
+echo "*** Installing MySQL (with no root password) ***" # need to secure password in later step
 sudo DEBIAN_FRONTEND=noninteractive aptitude install -y mysql-server
 
 echo "*** Creating XFS filesystem and moving mysql configuration ***"

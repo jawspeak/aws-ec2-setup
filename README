@@ -1,1 +1,6 @@
-work in progress
+Run the scripts in this general order:
+
+- install_mysql_ebs.sh
+- install_application_dependencies.sh
+- init_db.sh
+
