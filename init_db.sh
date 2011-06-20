@@ -22,7 +22,7 @@ die() {
     exit $error_code
 }
 
-while getopts "hDUP" opt; do
+while getopts "hD:U:P:" opt; do
     case "$opt" in
         h)
             usage
