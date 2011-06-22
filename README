@@ -2,5 +2,12 @@ Run the scripts in this general order:
 
 - install_mysql_ebs.sh
 - install_application_dependencies.sh
-- init_db.sh
+- this will also involve setting up deployer-key for github. http://help.github.com/mac-set-up-git/
+ssh-keygen -t rsa
+then copy/paste the key into github. Or, if you deploy several projects, have 1 added key to your account.
+
+- (scp a database dump to this server)
+- init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql
+- (scp a database dump to this server)
+- init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql
 

@@ -10,6 +10,7 @@ Required:
  -U DATABASE_USER        the database user. Defaults to DATABASE_NAME
 Optional:
  -P DATABASE_PASSWORD    the database password. Defaults to autogenerate
+ -L Sql Data file to load
 EOF
 }
 
@@ -22,7 +23,7 @@ die() {
     exit $error_code
 }
 
-while getopts "hD:U:P:" opt; do
+while getopts "hD:U:P:L:" opt; do
     case "$opt" in
         h)
             usage
@@ -37,6 +38,9 @@ while getopts "hD:U:P:" opt; do
         P)
             export DATABASE_PASSWORD="$OPTARG"
             ;;
+	L)
+	    export SQL_FILE="$OPTARG"
+	    ;;
         [?])
             die "unknown option $opt" 10
             ;;
@@ -82,4 +86,13 @@ Public DNS: $PUBLIC_DNS
 EOF
 }
 
-create_mysql_database && open_external_port && print_mysql_config
+load_sql_data() {
+    if [ -Z $SQL_FILE ]; then
+	echo "skipping data load, no sql passed in";
+    else
+        #this does not prevent double-loading of data, not indepotent
+	mysql --user=root -D $DATABASE_NAME < $SQL_FILE
+    fi
+}
+
+create_mysql_database && open_external_port && print_mysql_config && load_sql_data
