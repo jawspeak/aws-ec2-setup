@@ -45,7 +45,7 @@ cat <<EOF | sudo tee /etc/logrotate.d/passenger
         endscript
 }
 
-/vol/log/backups/backup.logs {
+/vol/log/backups/ebs-backup.log {
        weekly
         missingok
         rotate 30
@@ -90,9 +90,17 @@ sudo /etc/init.d/apache2 restart
 #mkdir ~/.ec2
 #if [  "`lsb_release -sd`" !=  'Ubuntu 11.04' ]; then
 #    echo "Warning - this was written for Ubuntu 11.04 natty, but you are running something else"
-#    read -p "We Cannot install Java, ec2 tools, or backups. Press any key to continue. You must manually configure later"
+#   read -p "We Cannot install Java, ec2 tools, or backups. Press any key to continue. Manually configure sun-java6-jre later"
 #fi
+#sudo sed -i -E "s|# (deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty multiverse)|\1|" /etc/apt/sources.list
+#sudo sed -i -E "s|# (deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty multiverse)|\1|" /etc/apt/sources.list
+#sudo sed -i -E "s|# (deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty-updates multiverse)|\1|" /etc/apt/sources.list
+#sudo sed -i -E "s|# (deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty-updates multiverse)|\1|" /etc/apt/sources.list
 #sudo apt-get install -y sun-java6-jdk
+#sudo apt-get install -y openjdk-6-jre-headless
+#cat <<EOF | tee .ec2/set_credentials
+#export
+#EOF
 
 echo "**** Install ec2 backup tool ****"
 sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
@@ -104,7 +112,7 @@ sudo chown ubuntu:ubuntu /vol/log/backups
 cat <<EOF | tee ~/bin/backup_ebs.sh
 #!/bin/sh
 #set -xe
-LOGFILE=/vol/log/backups/backup.logs
+LOGFILE=/vol/log/backups/ebs-backup.log
 VOLUME=\$1
 DESCRIPTION="\$(date +'%Y-%m-%d_%H:%M:%S_%Z')_snapshot"
 AWS_REGION="us-east-1"
