@@ -1,13 +1,15 @@
 Run the scripts in this general order:
 
-- install_mysql_ebs.sh
-- install_application_dependencies.sh
-- this will also involve setting up deployer-key for github. http://help.github.com/mac-set-up-git/
-ssh-keygen -t rsa
-then copy/paste the key into github. Or, if you deploy several projects, have 1 added key to your account.
+- ./install_mysql_ebs.sh
+- ./install_application_dependencies.sh
+- this will also involve adding your key to github. http://help.github.com/mac-set-up-git/ On this machine, run:
+  ssh-keygen -t rsa
+  Then copy/paste the key into github. Deployer keys won't work, because we deploy several projects from 1 key.
+- scp a database dump to this server, ecom_datadump.sql
+  init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql
+- scp a database dump to this server, forum_datadump.sql
+  init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql
+- run the application's capistrano deployment script to push the apache app configs out. Then a2ensite SITE, then restart apache.
 
-- (scp a database dump to this server)
-- init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql
-- (scp a database dump to this server)
-- init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql
-
+You are done!
+TODO: replace all of this with an automated chef recipe.

@@ -87,11 +87,12 @@ EOF
 }
 
 load_sql_data() {
-    if [ -Z $SQL_FILE ]; then
+    if [ -z $SQL_FILE ]; then
 	echo "skipping data load, no sql passed in";
     else
         #this does not prevent double-loading of data, not indepotent
 	mysql --user=root -D $DATABASE_NAME < $SQL_FILE
+	echo "loaded data for $DATABASE_NAME from $SQL_FILE"
     fi
 }
 
