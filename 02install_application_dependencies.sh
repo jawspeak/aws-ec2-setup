@@ -46,7 +46,7 @@ cat <<EOF | sudo tee /etc/logrotate.d/passenger
 }
 
 /vol/log/backups/ebs-backup.log {
-       weekly
+        weekly
         missingok
         rotate 30
         compress
@@ -54,10 +54,6 @@ cat <<EOF | sudo tee /etc/logrotate.d/passenger
         sharedscripts
 }
 EOF
-
-echo "** Installing ruby enterprise edition **"
-wget http://rubyenterpriseedition.googlecode.com/files/ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
-sudo dpkg -i ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
 
 echo "** Installing apache **"
 sudo apt-get install -y apache2

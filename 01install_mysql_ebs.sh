@@ -47,29 +47,40 @@ sudo mount /var/log/mysql
 sudo /etc/init.d/mysql start
 
 
+echo "** Installing ruby enterprise edition **"
+wget http://rubyenterpriseedition.googlecode.com/files/ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
+sudo dpkg -i ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
+sudo gem install -y 'amazon-ec2'
+
 echo "**** Install ec2 backup tool for the volume ****"
 sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
-read -p " ***** YOU MUST copy over into $HOME/.awssecret a file containing both the Amazon AWS access key and
-secret access key on seprate lines and in that order. Do so in another shell. Press a key when you understand. ****"
+read -p " ***** YOU MUST copy over into $HOME/.ec2credentials exporting of variables. Example:
+          export AWS_ACCESS_KEY_ID='xxx'
+          export AWS_SECRET_ACCESS_KEY='yyy'
+Press a key to acknowledge this manual step. ****"
 mkdir ~/bin
 sudo mkdir -p /vol/log/backups
 sudo chown ubuntu:ubuntu /vol/log/backups
+curl https://raw.github.com/jawspeak/aws-ec2-setup/master/snapshot_deleter.rb > ~/bin/snapshot_deleter.rb
 cat <<EOF | tee ~/bin/backup_ebs.sh
 #!/bin/sh
 #set -xe
+. /home/ubuntu/.ec2credentials
 LOGFILE=/vol/log/backups/ebs-backup.log
-VOLUME=\$1
+EBS_VOLUME_ID=\$1
 DESCRIPTION="\$(date +'%Y-%m-%d_%H:%M:%S_%Z')_snapshot_backup"
 AWS_REGION="us-east-1"
-echo "******* \$(date): Starting backing up volume \$VOLUME  *******" | tee -a \$LOGFILE
+echo "******* \$(date): Starting backing up volume \$EBS_VOLUME_ID  *******" | tee -a \$LOGFILE
     #--mysql-password \$MYSQL_ROOT_PASSWORD
-cmd="ec2-consistent-snapshot --debug  --mysql --mysql-host localhost --mysql-username root  --xfs-filesystem /vol --description \$DESCRIPTION --region \$AWS_REGION   \$VOLUME"
+cmd="ec2-consistent-snapshot --debug  --mysql --mysql-host localhost --mysql-username root  --xfs-filesystem /vol --description \$DESCRIPTION --region \$AWS_REGION   \$EBS_VOLUME_ID"
 echo "will run: '\$cmd'" | tee -a \$LOGFILE
 \$cmd 2>&1 | tee -a \$LOGFILE
 
-# TODO remove old snapshots
-#KEEP_RECENT_N_SNAPSHOTS=40
-#echo "Deleting snapshots older than the newest \$KEEP_RECENT_N_SNAPSHOTS snapshots" | tee -a \$LOGFILE
+KEEP_RECENT_N_SNAPSHOTS=40
+echo "Deleting snapshots older than the newest \$KEEP_RECENT_N_SNAPSHOTS snapshots" | tee -a \$LOGFILE
+ruby /home/ubuntu/bin/snapshot_deleter.rb \$EBS_VOLUME_ID \$KEEP_RECENT_N_SNAPSHOTS | tee -a \$LOGFILE
+
+# not using this because java doesn't work on t1.micro as of 2011-06-24
 #ec2-describe-snapshots | sort -r -k 5 | sed 1,\$KEEP_RECENT_N_SNAPSHOTSd | awk '{print "Deleting snapshot " \$2; system("ec2-delete-snapshot " \$2)}' | tee -a \$LOGFILE
 
 echo "\$(date): Backup completed." | tee -a \$LOGFILE
