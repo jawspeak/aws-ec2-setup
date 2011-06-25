@@ -89,10 +89,10 @@ sudo /etc/init.d/apache2 restart
 #mv ec2-api-tools-1.4.3.0/bin .ec2/
 #mkdir ~/.ec2
 #if [  "`lsb_release -sd`" !=  'Ubuntu 11.04' ]; then
-#    echo "Warning - this was written for Ubuntu 11.04 natty, but you are running something else"
+#    echo "Warning - this was written for Ubuntu 10.04 Lucid, but you are running something else"
 #   read -p "We Cannot install Java, ec2 tools, or backups. Press any key to continue. Manually configure sun-java6-jre later"
 #fi
-#sudo sed -i -E "s|# (deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty multiverse)|\1|" /etc/apt/sources.list
+#sudo sed -i -E "s|# (deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty parnter)|\1|" /etc/apt/sources.list
 #sudo sed -i -E "s|# (deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty multiverse)|\1|" /etc/apt/sources.list
 #sudo sed -i -E "s|# (deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty-updates multiverse)|\1|" /etc/apt/sources.list
 #sudo sed -i -E "s|# (deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ natty-updates multiverse)|\1|" /etc/apt/sources.list
@@ -102,39 +102,8 @@ sudo /etc/init.d/apache2 restart
 #export
 #EOF
 
-echo "**** Install ec2 backup tool ****"
-sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
-read -p " ***** YOU MUST copy over into $HOME/.awssecret a file containing both the Amazon AWS access key and
-          secret access key on seprate lines and in that order. Press a key to understand. ****"
-mkdir ~/bin
-sudo mkdir -p /vol/log/backups
-sudo chown ubuntu:ubuntu /vol/log/backups
-cat <<EOF | tee ~/bin/backup_ebs.sh
-#!/bin/sh
-#set -xe
-LOGFILE=/vol/log/backups/ebs-backup.log
-VOLUME=\$1
-DESCRIPTION="\$(date +'%Y-%m-%d_%H:%M:%S_%Z')_snapshot"
-AWS_REGION="us-east-1"
-echo "******* \$(date): Starting backing up volume \$VOLUME  *******" | tee -a \$LOGFILE
-    #--mysql-password \$MYSQL_ROOT_PASSWORD
-cmd="ec2-consistent-snapshot --debug  --mysql --mysql-host localhost --mysql-username root  --xfs-filesystem /vol --description \$DESCRIPTION --region \$AWS_REGION   \$VOLUME"
-echo "will run: '\$cmd'" | tee -a \$LOGFILE
-\$cmd 2>&1 | tee -a \$LOGFILE
-
-# TODO remove old snapshots
-#KEEP_RECENT_N_SNAPSHOTS=40
-#echo "Deleting snapshots older than the newest \$KEEP_RECENT_N_SNAPSHOTS snapshots" | tee -a \$LOGFILE
-#ec2-describe-snapshots | sort -r -k 5 | sed 1,\$KEEP_RECENT_N_SNAPSHOTSd | awk '{print "Deleting snapshot " \$2; system("ec2-delete-snapshot " \$2)}' | tee -a \$LOGFILE
-
-echo "\$(date): Backup completed." | tee -a \$LOGFILE
-EOF
-chmod u+x ~/bin/backup_ebs.sh
-crontab -l | grep -v backup_ebs.sh > /tmp/wip_crontab
-echo "0 0 * * * /home/ubuntu/bin/backup_ebs.sh $EBS_VOLUME_ID" >> /tmp/wip_crontab
-crontab /tmp/wip_crontab
-rm -f /tmp/wip_crontab
-
 # TODO
 #echo " ******** Munin performance monitoring *********"
 #sudo apt-get install -y munin munin-node apache2
+
+echo "You need to create and authorize your GitHub keys to be able to deploy"
