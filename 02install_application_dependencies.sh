@@ -12,7 +12,10 @@ sudo apt-get install -y emacs
 echo "** Install scm **"
 sudo apt-get install -y git
 # because we deploy from github, set up http://help.github.com/deploy-keys/
-read -p "******* Manual step: set up github keys so this machine can pull from github"
+read -p "******* Manual step: set up github keys so this machine can pull from github:
+         ssh-keygen -t rsa   (no passphase)
+         Then cat .ssh/id_rsa.pub and put it all up on https://github.com/account/ssh
+(I suggest doing this right now in another ssh session. Press any key to continue.)"
 
 # apache serves out of this directory
 sudo mkdir -p /srv
@@ -61,7 +64,10 @@ echo "** Installing php5 **"
 sudo apt-get install -y php5
 sudo apt-get install -y php5-mysql
 
-echo "** Installing phusian passenger, and dependencies **"
+echo "** Installing ruby enterprise edition, phusian passenger, and dependencies **"
+wget http://rubyenterpriseedition.googlecode.com/files/ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
+sudo dpkg -i ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
+sudo gem install -y 'amazon-ec2'
 sudo apt-get install -y build-essential
 sudo apt-get install -y libcurl4-openssl-dev
 sudo apt-get install -y libssl-dev
@@ -70,48 +76,62 @@ sudo apt-get install -y apache2-prefork-dev
 sudo apt-get install -y libapr1-dev
 sudo apt-get install -y libaprutil1-dev
 sudo /usr/local/bin/passenger-install-apache2-module -a
+cat <<EOF | sudo tee /etc/apache2/mods-available/passenger.load
+# EDIT THIS FILE after install: /etc/apache2/mods-available/passenger.load
+#Edit your Apache configuration file, and add these lines (take the lines from installing, don't use the example below)
+LoadModule passenger_module /usr/local/lib/ruby/gems/1.8/gems/passenger-!!your version here!!/ext/apache2/mod_passenger.so
+PassengerRoot /usr/local/lib/ruby/gems/1.8/gems/passenger- !!your version here!!
+PassengerRuby /usr/local/bin/ruby
+# then sudo a2enmod passenger, and restart apache
+EOF
 echo    " ******** YOU MUST Enter the settings specified in the above instructions. ********"
+echo    "          Edit /etc/apache2/mods-available/passenger.load and restart apache"
+echo    "          (I use a capistrano task to load in all the apache virtual dir settings.)"
 read -p "          Press any key to continue" # TODO this prompts and is not fully automated.
 
-sudo a2enmod rewrite
+sudo a2enmod rewrite passenger
 sudo /etc/init.d/apache2 restart
 
-
-echo "** Installing ruby enterprise edition **"
-wget http://rubyenterpriseedition.googlecode.com/files/ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
-sudo dpkg -i ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
-sudo gem install -y 'amazon-ec2'
+echo "*** Securing the initiol mysql root account ***"
+NEW_MYSQL_ROOT_PASSWORD=`head -c 100 /dev/urandom | md5sum | awk '{print substr($1,1,15)}'`
+mysql -u root mysql --execute "UPDATE mysql.user SET Password = PASSWORD(\"$NEW_MYSQL_ROOT_PASSWORD\") WHERE User = 'root'; FLUSH PRIVILEGES;"
+echo "MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT_PASSWORD" > ~/.mysqlrootpass
+chmod 400 ~/.mysqlrootpass
+sudo chown root:root ~/.mysqlrootpass
+read -p "Your root mysql password has been changed. It is stored in ~/.mysqlrootpass"
 
 echo "**** Install ec2 backup tool for the volume ****"
 sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
-read -p " ***** YOU MUST copy over into $HOME/.ec2credentials exporting of variables. Example:
-          export AWS_ACCESS_KEY_ID='xxx'
-          export AWS_SECRET_ACCESS_KEY='yyy'
-Press a key to acknowledge this manual step. ****"
+echo " ***** YOU MUST edit $HOME/.ec2credentials exporting of your amazon auth variables. Example:"
+cat <<EOF | tee ~/.ec2credentials
+export AWS_ACCESS_KEY_ID='xxx'
+export AWS_SECRET_ACCESS_KEY='yyy'
+EOF
+read -p "Press a key to acknowledge this manual step. ****"
+
+echo "*** Configuring backups for the ebs volume $EBS_VOLUME_ID ***"
 mkdir ~/bin
 sudo mkdir -p /vol/log/backups
 sudo chown ubuntu:ubuntu /vol/log/backups
-curl https://raw.github.com/jawspeak/aws-ec2-setup/master/snapshot_deleter.rb > ~/bin/snapshot_deleter.rb
+curl -s https://raw.github.com/jawspeak/aws-ec2-setup/master/snapshot_deleter.rb > ~/bin/snapshot_deleter.rb
 cat <<EOF | tee ~/bin/backup_ebs.sh
 #!/bin/sh
-#set -xe
+set -e
 . /home/ubuntu/.ec2credentials
+. /home/ubuntu/.mysqlrootpass
 LOGFILE=/vol/log/backups/ebs-backup.log
 EBS_VOLUME_ID=\$1
 DESCRIPTION="\$(date +'%Y-%m-%d_%H:%M:%S_%Z')_snapshot_backup"
 AWS_REGION="us-east-1"
+
 echo "******* \$(date): Starting backing up volume \$EBS_VOLUME_ID  *******" | tee -a \$LOGFILE
-    #--mysql-password \$MYSQL_ROOT_PASSWORD
-cmd="ec2-consistent-snapshot --debug  --mysql --mysql-host localhost --mysql-username root  --xfs-filesystem /vol --description \$DESCRIPTION --region \$AWS_REGION   \$EBS_VOLUME_ID"
+cmd="ec2-consistent-snapshot --debug  --mysql --mysql-host localhost --mysql-username root  --mysql-password \$MYSQL_ROOT_PASSWORD --xfs-filesystem /vol --description \$DESCRIPTION --region \$AWS_REGION   \$EBS_VOLUME_ID"
 echo "will run: '\$cmd'" | tee -a \$LOGFILE
 \$cmd 2>&1 | tee -a \$LOGFILE
 
 KEEP_RECENT_N_SNAPSHOTS=40
 echo "Deleting snapshots older than the newest \$KEEP_RECENT_N_SNAPSHOTS snapshots" | tee -a \$LOGFILE
 ruby /home/ubuntu/bin/snapshot_deleter.rb \$EBS_VOLUME_ID \$KEEP_RECENT_N_SNAPSHOTS | tee -a \$LOGFILE
-
-# not using this because java doesn't work on t1.micro as of 2011-06-24
-#ec2-describe-snapshots | sort -r -k 5 | sed 1,\$KEEP_RECENT_N_SNAPSHOTSd | awk '{print "Deleting snapshot " \$2; system("ec2-delete-snapshot " \$2)}' | tee -a \$LOGFILE
 
 echo "\$(date): Backup completed." | tee -a \$LOGFILE
 EOF
@@ -125,5 +145,5 @@ rm -f /tmp/wip_crontab
 #echo " ******** Munin performance monitoring *********"
 #sudo apt-get install -y munin munin-node apache2
 
-echo "--- > You need to create and authorize your GitHub keys to be able to deploy"
-echo "--- > Also, don't forget to change mysql root user"
+echo "--- > Remember to do what we prompted you for, see source of this script if you forget."
+echo "--- > Securely save the new root mysql password. (In $HOME/.mysqlrootpass). You need to keep that file for backups to read it."

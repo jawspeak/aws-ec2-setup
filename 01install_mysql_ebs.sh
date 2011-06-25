@@ -12,7 +12,11 @@ if [ -z $VOLUME ]; then
     exit 1;
 fi
 
-echo "*** Installing MySQL (with no root password) ***" # need to secure password in later step
+echo "*** Updating ***"
+sudo aptitude update
+sudo aptitude -y safe-upgrade
+
+echo "*** Installing MySQL (with no root password) ***" # (we secure password in later step)
 sudo DEBIAN_FRONTEND=noninteractive aptitude install -y mysql-server
 
 echo "*** Creating XFS filesystem and moving mysql configuration ***"
