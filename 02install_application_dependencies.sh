@@ -1,10 +1,15 @@
 #!/bin/bash
-set -e # error if any errors
-if [ $# -ne 1 ]; then
-    echo "Usage `basename $0` EBS_VOLUME_ID (ex vol-123fff mounted to /vol that you will backup)"
+set -e # die if any errors
+if [ $# -ne 3 ]; then
+    echo "Usage `basename $0` EBS_VOLUME_ID  EMAIL_ALERTS_ADDRESS  MUNIN_BASIC_AUTH_PASSWORD"
+    echo "   EBS_VOLUME_ID              ex vol-123fff, mounted to /vol that you will backup)"
+    echo "   EMAIL_ALERTS_ADDRESS       what email address do you want to get alerted with munin monitoring"
+    echo "   MUNIN_BASIC_AUTH_PASSWORD  the password to protect the munin site served by apache"
     exit 1
 fi
 EBS_VOLUME_ID=$1
+EMAIL_ALERTS_ADDRESS=$2
+MUNIN_BASIC_AUTH_PASSWORD=$3
 
 echo "** Installing emacs for my sanity **"
 sudo apt-get install -y emacs
@@ -90,6 +95,7 @@ echo    "          (I use a capistrano task to load in all the apache virtual di
 read -p "          Press any key to continue" # TODO this prompts and is not fully automated.
 
 sudo a2enmod rewrite passenger
+sudo a2dissite default
 sudo /etc/init.d/apache2 restart
 
 echo "*** Securing the initiol mysql root account ***"
@@ -141,9 +147,44 @@ echo "0 0 * * * /home/ubuntu/bin/backup_ebs.sh $EBS_VOLUME_ID" >> /tmp/wip_cront
 crontab /tmp/wip_crontab
 rm -f /tmp/wip_crontab
 
-# TODO
-#echo " ******** Munin performance monitoring *********"
-#sudo apt-get install -y munin munin-node apache2
+echo " ******** Munin performance monitoring *********"
+sudo apt-get install -y munin munin-node
+sudo sed -i -E "s|#.*(dbdir.*/var/lib/munin)|\1|" /etc/munin/munin.conf
+sudo sed -i -E "s|#.*(htmldir.*/var/cache/munin/www)|\1|" /etc/munin/munin.conf
+sudo sed -i -E "s|#.*(logdir.*/var/log/munin)|\1|" /etc/munin/munin.conf
+sudo sed -i -E "s|#.*(rundir.*/var/run/munin)|\1|" /etc/munin/munin.conf
+sudo sed -i -E "s|#.*(tmpldir.*/etc/munin/templates)|\1|" /etc/munin/munin.conf
+sudo sed -i -e "/#contact.someuser.command mail/i\\
+contact.admin.command mail -s \"Munin notification\" $EMAIL_ALERTS_ADDRESS
+" /etc/munin/munin.conf
+sudo htpasswd -c -b /etc/apache2/sites-available/munin.htpasswd-private admin $MUNIN_BASIC_AUTH_PASSWORD
+cat <<EOF | tee /etc/apache2/sites-available/munin
+NameVirtualHost *:8899
+Listen 8899
+<VirtualHost *:8899>
+        DocumentRoot /var/cache/munin/www
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /var/cache/munin/www>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride None
+                Order allow,deny
+                allow from all
+
+                AuthType Basic
+                AuthName "Private"
+                AuthUserFile /etc/apache2/sites-available/munin.htpasswd-private
+                Require valid-user
+        </Directory>
+
+        ErrorLog \${APACHE_LOG_DIR}/munin-error.log
+        CustomLog \${APACHE_LOG_DIR}/munin-access.log combined
+</VirtualHost>
+EOF
+sudo a2ensite munin
+echo "Munin is running, on port 8899, user 'admin', pass $MUNIN_BASIC_AUTH_PASSWORD. Browse to http://public-dns:8899"
 
 echo "--- > Remember to do what we prompted you for, see source of this script if you forget."
 echo "--- > Securely save the new root mysql password. (In $HOME/.mysqlrootpass). You need to keep that file for backups to read it."
