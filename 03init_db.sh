@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 SCRIPT_NAME=$0
 
 usage() {
@@ -60,7 +61,7 @@ if [ -z "$DATABASE_PASSWORD" ]; then
 fi
 
 create_mysql_database() {
-    cat <<EOF | mysql --user=root
+    cat <<EOF | mysql --user=root --password=$MYSQL_ROOT_PASSWORD
 CREATE DATABASE IF NOT EXISTS $DATABASE_NAME;
 GRANT ALL PRIVILEGES  on $DATABASE_NAME.* to '$DATABASE_USER'@'%' identified by '$DATABASE_PASSWORD';
 EOF
@@ -94,9 +95,10 @@ load_sql_data() {
 	echo "skipping data load, no sql passed in";
     else
         #this does not prevent double-loading of data, not indepotent
-	mysql --user=root -D $DATABASE_NAME < $SQL_FILE
+	mysql --user=root --password=$MYSQL_ROOT_PASSWORD -D $DATABASE_NAME < $SQL_FILE
 	echo "loaded data for $DATABASE_NAME from $SQL_FILE"
     fi
 }
 
+export `sudo cat ~/.mysqlrootpass`
 create_mysql_database && open_external_port && print_mysql_config && load_sql_data

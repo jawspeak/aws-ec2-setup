@@ -21,14 +21,14 @@ Follow these steps to get a working t1.micro ebs backed ec2 rails and php server
 1. Record how the script changed the default mysql root password. Save it somewhere.
 
 ### Load data and deploy ###
-1. Prepare however you need a database dump, copy from your local machine up. `scp -i ~/.ssh/your-key.pem ecom_datadump.sql ubuntu@<your dns>:` Then load the dump in a new database.
-  `bash 03init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql` Take note of the generated passwords.
+1. Prepare however you need a database dump, copy from your local machine up. `scp -i ~/.ssh/your-key.pem ecom_datadump.sql ubuntu@<public dns>:` Then load the dump in a new database.
+  `bash 03init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql` Take note of the new users' generated passwords.
 1. Scp another database dump to this server, forum_datadump.sql
-  `bash 03init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql` Note these new passwords too.
+  `bash 03init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql` Note these new users new passwords too.
 1. If you use elastic IP, associate it with this instance. Easiest in the web admin console.
 1. Run the application's capistrano deployment script to push the apache app configs out. Then `sudo a2ensite SITE`, then `sudo /etc/init.d/apache restart`.
 
 
 ### Future work / thoughts ###
-* TODO: replace all of this with an automated chef recipe.
+* TODO: replace all of this with an automated chef recipe. See http://agiletesting.blogspot.com/2010/07/bootstrapping-ec2-instances-with-chef.html and elsewhere.
 * I prefer taking an Ubuntu AMI and building it out in an automated fashion. However, in a dynamicly updating cloud, we have to consider the time it will take to get a new instance up. To mimize that time, creating an AMI from an automated good state has major speed benefits.
