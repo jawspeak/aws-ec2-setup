@@ -69,11 +69,14 @@ EOF
 }
 
 open_external_port() {
-    cat <<EOF | sudo tee /etc/mysql/conf.d/listen_externally.cnf
-[mysqld]
-    bind-address = 0.0.0.0
-EOF
-    sudo /etc/init.d/mysql restart
+echo "Opening an external port is disabled, no need for an external port, use an ssh tunnel"
+echo "   ssh -N -f -L 3307:localhost:3306 myhost.com"
+echo "   mysql -P 3307 database_name"
+#    cat <<EOF | sudo tee /etc/mysql/conf.d/listen_externally.cnf
+#[mysqld]
+#    bind-address = 0.0.0.0
+#EOF
+#    sudo /etc/init.d/mysql restart
 }
 
 print_mysql_config() {

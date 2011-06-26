@@ -104,7 +104,7 @@ mysql -u root mysql --execute "UPDATE mysql.user SET Password = PASSWORD(\"$NEW_
 echo "MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT_PASSWORD" > ~/.mysqlrootpass
 chmod 400 ~/.mysqlrootpass
 sudo chown root:root ~/.mysqlrootpass
-read -p "Your root mysql password has been changed. It is stored in ~/.mysqlrootpass"
+read -p "Your root mysql password has been changed to $NEW_MYSQL_ROOT_PASSWORD. It is stored in ~/.mysqlrootpass"
 
 echo "**** Install ec2 backup tool for the volume ****"
 sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
@@ -157,6 +157,9 @@ sudo sed -i -E "s|#.*(tmpldir.*/etc/munin/templates)|\1|" /etc/munin/munin.conf
 sudo sed -i -e "/#contact.someuser.command mail/i\\
 contact.admin.command mail -s \"Munin notification\" $EMAIL_ALERTS_ADDRESS
 " /etc/munin/munin.conf
+sudo ln -s /usr/share/munin/plugins/mysql_* /etc/munin/plugins/
+sudo ln -s /usr/share/munin/plugins/netstat /etc/munin/plugins/
+sudo /etc/init.d/munin-node restart
 sudo htpasswd -c -b /etc/apache2/sites-available/munin.htpasswd-private admin $MUNIN_BASIC_AUTH_PASSWORD
 cat <<EOF | tee /etc/apache2/sites-available/munin
 NameVirtualHost *:8899
@@ -185,6 +188,8 @@ Listen 8899
 EOF
 sudo a2ensite munin
 echo "Munin is running, on port 8899, user 'admin', pass $MUNIN_BASIC_AUTH_PASSWORD. Browse to http://public-dns:8899"
+read -p "Open up TCP 8899 from 0.0.0.0 at https://console.aws.amazon.com/ec2/home#s=SecurityGroups. Press a key to continue."
 
 echo "--- > Remember to do what we prompted you for, see source of this script if you forget."
 echo "--- > Securely save the new root mysql password. (In $HOME/.mysqlrootpass). You need to keep that file for backups to read it."
+echo "Done!"
