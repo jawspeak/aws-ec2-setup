@@ -12,11 +12,12 @@ Follow these steps to get a working t1.micro ebs backed ec2 rails and php server
 1. Attach the volume to your instance `ec2-attach-volume vol-2b3b0000 -i  i-00001111 -d /dev/sdf` (use your new vol and instance id's)
 1. Get the public dns of your instance `ec2-describe-instances`, look for something like ec2-50-19-100-100.compute-1.amazonaws.com. Use that to ssh in.
 1. You may also want to add tags to the instance and volumes. Such as a Name. Easy to do in the [console](https://console.aws.amazon.com/ec2/home).
+1. If you use elastic IP, associate it with this instance. Easiest in the web admin console.
 
 ### SSH into your new instance ###
 1. `ssh -i ~/.ssh/your-key.pem ubuntu@<your public dns>`
 1. `bash 01install_mysql_ebs.sh /dev/xvdX` (find the ebs volume device, ex /dev/xvdb not /dev/sdf in new kernels). You can find out the volume by looking what is not already mounted by running `mount`, or `sudo dmesg | tail` and see what was connected.
-1. `bash 02install_application_dependencies.sh ECB_VOLUME_ID` (ex: vol-2b3b0000, from above when you created it)
+1. `bash 02install_application_dependencies.sh ECB_VOLUME_ID EMAIL_ALERTS_ADDRESS MUNIN_BASIC_AUTH_PASS`
 1. this will also involve adding a new key to github. http://help.github.com/mac-set-up-git/ On the ec2 machine, run `ssh-keygen -t rsa`. Then copy/paste the public key into github. Deployer keys won't work, because we deploy several projects from 1 key.
 1. Record how the script changed the default mysql root password. Save it somewhere.
 
@@ -25,7 +26,6 @@ Follow these steps to get a working t1.micro ebs backed ec2 rails and php server
   `bash 03init_db.sh -D lla_ecom_production -U lla_ecom_prod` Take note of the new users' generated passwords.
 1. Scp another database dump to this server, forum_datadump.sql
   `bash 03init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql` Note these new users new passwords too.
-1. If you use elastic IP, associate it with this instance. Easiest in the web admin console.
 1. Run the application's capistrano deployment script to push the apache app configs out. Then `sudo a2ensite SITE`, then `sudo /etc/init.d/apache restart`.
 
 

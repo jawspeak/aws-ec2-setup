@@ -38,17 +38,15 @@ sudo chmod 0440 /etc/sudoers.tmp
 echo "deployer ALL=(ALL) NOPASSWD:/bin/ln,/etc/init.d/apache2 restart" | sudo tee -a /etc/sudoers.tmp
 sudo mv /etc/sudoers.tmp /etc/sudoers
 
-sudo su - deployer
-ssh-keygen -t rsa -f .ssh/id_rsa -P ''
-exit
-echo "   Created a fresh ssh key in /home/deployer/.ssh/id_rsa.pub, which you need to copy/paste into github. All 1 line:"
+sudo su -c "ssh-keygen -t rsa -f .ssh/id_rsa -P ''" - deployer
+echo "*** Created a fresh ssh key in /home/deployer/.ssh/id_rsa.pub, which you need to copy/paste into github. All 1 line: ***"
 echo "" && sudo cat /home/deployer/.ssh/id_rsa.pub && echo ""
 echo "Copy/paste the above into github to add the key as authorized for you: https://github.com/account/ssh"
 read -p "(I suggest doing this right now so you don't forget. Press any key to continue.)"
 
 # and might as well prevent root login from even connecting to prevent DOS when the /root/.ssh/authorized_keys message appears
 sudo sed -i -E "s|PermitRootLogin yes|PermitRootLogin no|" /etc/ssh/sshd_config
-sudo /etc/init.d/ssh restart
+sudo service ssh restart
 
 # setup logrotate for the application log files (not newrelic though)
 cat <<EOF | sudo tee /etc/logrotate.d/passenger
