@@ -16,11 +16,6 @@ sudo apt-get install -y emacs
 
 echo "** Install scm **"
 sudo apt-get install -y git
-# because we deploy from github, set up http://help.github.com/deploy-keys/
-read -p "******* Manual step: set up github keys so this machine can pull from github:
-         ssh-keygen -t rsa   (no passphase)
-         Then cat .ssh/id_rsa.pub and put it all up on https://github.com/account/ssh
-(I suggest doing this right now in another ssh session. Press any key to continue.)"
 
 # apache serves out of this directory
 sudo mkdir -p /srv
@@ -31,12 +26,29 @@ sudo mkdir -p /vol/log/sv-lla-ecommerce
 sudo chgrp -R  www-data /vol/log/sv-lla-ecommerce/
 sudo chmod -R g+w /vol/log/sv-lla-ecommerce/
 
-# we do not yet deploy under a different user
-#echo "** Get ready for capistrano deployers **"
-#sudo useradd -d /home/deployer -m deployer
-#echo "   Set password for new user"
-#sudo passwd deployer
-#sudo usermod -g www-data deployer  #change primary group to www-data, so new files will be in that group
+echo "*** Creating a user for capistrano to deploy with ***"
+sudo useradd -m -g www-data -N -s /bin/bash deployer #(no password only keys, same as ubuntu user, below)
+sudo mkdir /home/deployer/.ssh
+sudo cp ~/.ssh/authorized_keys /home/deployer/.ssh/
+sudo chmod 700 /home/deployer/.ssh/
+sudo chown -R deployer /home/deployer/.ssh/
+
+sudo cat /etc/sudoers | grep -v 'deployer ALL' | sudo tee -a /etc/sudoers.tmp
+sudo chmod 0440 /etc/sudoers.tmp
+echo "deployer ALL=(ALL) NOPASSWD:/bin/ln,/etc/init.d/apache2 restart" | sudo tee -a /etc/sudoers.tmp
+sudo mv /etc/sudoers.tmp /etc/sudoers
+
+sudo su - deployer
+ssh-keygen -t rsa -f .ssh/id_rsa -P ''
+exit
+echo "   Created a fresh ssh key in /home/deployer/.ssh/id_rsa.pub, which you need to copy/paste into github. All 1 line:"
+echo "" && sudo cat /home/deployer/.ssh/id_rsa.pub && echo ""
+echo "Copy/paste the above into github to add the key as authorized for you: https://github.com/account/ssh"
+read -p "(I suggest doing this right now so you don't forget. Press any key to continue.)"
+
+# and might as well prevent root login from even connecting to prevent DOS when the /root/.ssh/authorized_keys message appears
+sudo sed -i -E "s|PermitRootLogin yes|PermitRootLogin no|" /etc/ssh/sshd_config
+sudo /etc/init.d/ssh restart
 
 # setup logrotate for the application log files (not newrelic though)
 cat <<EOF | sudo tee /etc/logrotate.d/passenger
@@ -96,6 +108,7 @@ read -p "          Press any key to continue" # TODO this prompts and is not ful
 
 sudo a2enmod rewrite passenger
 sudo a2dissite default
+#sudo usermod -G www-data ubuntu
 sudo /etc/init.d/apache2 restart
 
 echo "*** Securing the initiol mysql root account ***"
@@ -187,7 +200,7 @@ Listen 8899
 </VirtualHost>
 EOF
 sudo a2ensite munin
-echo "Munin is running, on port 8899, user 'admin', pass $MUNIN_BASIC_AUTH_PASSWORD. Browse to http://public-dns:8899"
+echo "Munin is running, on port 8899, user 'admin', pass $MUNIN_BASIC_AUTH_PASSWORD. Browse to http://<ec2-public-dns>:8899"
 read -p "Open up TCP 8899 from 0.0.0.0 at https://console.aws.amazon.com/ec2/home#s=SecurityGroups. Press a key to continue."
 
 echo "--- > Remember to do what we prompted you for, see source of this script if you forget."

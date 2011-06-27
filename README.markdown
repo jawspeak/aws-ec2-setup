@@ -22,7 +22,7 @@ Follow these steps to get a working t1.micro ebs backed ec2 rails and php server
 
 ### Load data and deploy ###
 1. Prepare however you need a database dump, copy from your local machine up. `scp -i ~/.ssh/your-key.pem ecom_datadump.sql ubuntu@<public dns>:` Then load the dump in a new database.
-  `bash 03init_db.sh -D lla_ecom_production -U lla_ecom_prod -L ecom_datadump.sql` Take note of the new users' generated passwords.
+  `bash 03init_db.sh -D lla_ecom_production -U lla_ecom_prod` Take note of the new users' generated passwords.
 1. Scp another database dump to this server, forum_datadump.sql
   `bash 03init_db.sh -D lla_forum_production -U lla_forum_prod -L forum_datadump.sql` Note these new users new passwords too.
 1. If you use elastic IP, associate it with this instance. Easiest in the web admin console.
