@@ -5,6 +5,7 @@ if [ $# -ne 3 ]; then
     echo "   EBS_VOLUME_ID              ex vol-123fff, mounted to /vol that you will backup)"
     echo "   EMAIL_ALERTS_ADDRESS       what email address do you want to get alerted with munin monitoring"
     echo "   MUNIN_BASIC_AUTH_PASSWORD  the password to protect the munin site served by apache"
+    echo "                                 Note: do not have a \$ in this because the shell will escape it."
     exit 1
 fi
 EBS_VOLUME_ID=$1
@@ -42,7 +43,8 @@ sudo su -c "ssh-keygen -t rsa -f .ssh/id_rsa -P ''" - deployer
 echo "*** Created a fresh ssh key in /home/deployer/.ssh/id_rsa.pub, which you need to copy/paste into github. All 1 line: ***"
 echo "" && sudo cat /home/deployer/.ssh/id_rsa.pub && echo ""
 echo "Copy/paste the above into github to add the key as authorized for you: https://github.com/account/ssh"
-read -p "(I suggest doing this right now so you don't forget. Press any key to continue.)"
+read -p "(I suggest doing this right now so you don't forget. Press Enter to continue.)"
+sudo su -c 'ssh -o "StrictHostKeyChecking no" git@github.com' - deployer  # accept their key, so cap deploy does not fail on us
 
 # and might as well prevent root login from even connecting to prevent DOS when the /root/.ssh/authorized_keys message appears
 sudo sed -i -E "s|PermitRootLogin yes|PermitRootLogin no|" /etc/ssh/sshd_config
@@ -97,17 +99,15 @@ cat <<EOF | sudo tee /etc/apache2/mods-available/passenger.load
 LoadModule passenger_module /usr/local/lib/ruby/gems/1.8/gems/passenger-!!your version here!!/ext/apache2/mod_passenger.so
 PassengerRoot /usr/local/lib/ruby/gems/1.8/gems/passenger- !!your version here!!
 PassengerRuby /usr/local/bin/ruby
-# then sudo a2enmod passenger, and restart apache
 EOF
 echo    " ******** YOU MUST Enter the settings specified in the above instructions. ********"
 echo    "          Edit /etc/apache2/mods-available/passenger.load and restart apache"
 echo    "          (I use a capistrano task to load in all the apache virtual dir settings.)"
-read -p "          Press any key to continue" # TODO this prompts and is not fully automated.
+read -p "          Press Enter to continue" # TODO this prompts and is not fully automated.
 
 sudo a2enmod rewrite passenger
 sudo a2dissite default
-#sudo usermod -G www-data ubuntu
-sudo /etc/init.d/apache2 restart
+sudo service apache2 restart
 
 echo "*** Securing the initiol mysql root account ***"
 NEW_MYSQL_ROOT_PASSWORD=`head -c 100 /dev/urandom | md5sum | awk '{print substr($1,1,15)}'`
@@ -115,7 +115,8 @@ mysql -u root mysql --execute "UPDATE mysql.user SET Password = PASSWORD(\"$NEW_
 echo "MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT_PASSWORD" > ~/.mysqlrootpass
 chmod 400 ~/.mysqlrootpass
 sudo chown root:root ~/.mysqlrootpass
-read -p "Your root mysql password has been changed to $NEW_MYSQL_ROOT_PASSWORD. It is stored in ~/.mysqlrootpass"
+echo "Your root mysql password has been changed to $NEW_MYSQL_ROOT_PASSWORD. It is stored in ~/.mysqlrootpass"
+read -p "          Press Enter to continue"
 
 echo "**** Install ec2 backup tool for the volume ****"
 sudo add-apt-repository ppa:alestic && sudo apt-get update && sudo apt-get install -y ec2-consistent-snapshot
@@ -124,7 +125,7 @@ cat <<EOF | tee ~/.ec2credentials
 export AWS_ACCESS_KEY_ID='xxx'
 export AWS_SECRET_ACCESS_KEY='yyy'
 EOF
-read -p "Press a key to acknowledge this manual step. ****"
+read -p "Press Enter to acknowledge this manual step. ****"
 
 echo "*** Configuring backups for the ebs volume $EBS_VOLUME_ID ***"
 mkdir ~/bin
@@ -153,7 +154,7 @@ ruby /home/ubuntu/bin/snapshot_deleter.rb \$EBS_VOLUME_ID \$KEEP_RECENT_N_SNAPSH
 echo "\$(date): Backup completed." | tee -a \$LOGFILE
 EOF
 chmod u+x ~/bin/backup_ebs.sh
-crontab -l | grep -v backup_ebs.sh > /tmp/wip_crontab
+( crontab -l || test 0 ) | grep -v backup_ebs.sh > /tmp/wip_crontab  # don't let crontab -l have nonzero return code
 echo "0 0 * * * /home/ubuntu/bin/backup_ebs.sh $EBS_VOLUME_ID" >> /tmp/wip_crontab
 crontab /tmp/wip_crontab
 rm -f /tmp/wip_crontab
@@ -172,7 +173,7 @@ sudo ln -s /usr/share/munin/plugins/mysql_* /etc/munin/plugins/
 sudo ln -s /usr/share/munin/plugins/netstat /etc/munin/plugins/
 sudo /etc/init.d/munin-node restart
 sudo htpasswd -c -b /etc/apache2/sites-available/munin.htpasswd-private admin $MUNIN_BASIC_AUTH_PASSWORD
-cat <<EOF | tee /etc/apache2/sites-available/munin
+cat <<EOF | sudo tee /etc/apache2/sites-available/munin
 NameVirtualHost *:8899
 Listen 8899
 <VirtualHost *:8899>
@@ -198,8 +199,9 @@ Listen 8899
 </VirtualHost>
 EOF
 sudo a2ensite munin
+sudo service apache2 restart
 echo "Munin is running, on port 8899, user 'admin', pass $MUNIN_BASIC_AUTH_PASSWORD. Browse to http://<ec2-public-dns>:8899"
-read -p "Open up TCP 8899 from 0.0.0.0 at https://console.aws.amazon.com/ec2/home#s=SecurityGroups. Press a key to continue."
+read -p "Open up TCP 8899 from 0.0.0.0 at https://console.aws.amazon.com/ec2/home#s=SecurityGroups. Press Enter to continue."
 
 echo "--- > Remember to do what we prompted you for, see source of this script if you forget."
 echo "--- > Securely save the new root mysql password. (In $HOME/.mysqlrootpass). You need to keep that file for backups to read it."
