@@ -81,10 +81,17 @@ echo "** Installing php5 **"
 sudo apt-get install -y php5
 sudo apt-get install -y php5-mysql
 
-echo "** Installing ruby enterprise edition, phusian passenger, and dependencies **"
-wget http://rubyenterpriseedition.googlecode.com/files/ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
-sudo dpkg -i ruby-enterprise_1.8.7-2011.03_i386_ubuntu10.04.deb
-sudo gem install -y 'amazon-ec2'
+echo "** Installing ruby 1.9.3, phusian passenger, and dependencies **"
+\curl -L https://get.rvm.io | sudo bash -s stable --ruby=ruby-1.9.3-p362
+sudo usermod -a -G rvm ubuntu
+source /usr/local/rvm/scripts/rvm
+
+# Ugh. at this point I have to logout and log back in!! Argh. Or I get 
+# ERROR:  While executing gem ... (Gem::FilePermissionError)
+#     You don't have write permissions into the /usr/local/rvm/gems/ruby-1.9.3-p362 directory.
+gem install passenger
+gem install bundler
+
 sudo apt-get install -y build-essential
 sudo apt-get install -y libcurl4-openssl-dev
 sudo apt-get install -y libssl-dev
@@ -92,13 +99,16 @@ sudo apt-get install -y zlib1g-dev
 sudo apt-get install -y apache2-prefork-dev
 sudo apt-get install -y libapr1-dev
 sudo apt-get install -y libaprutil1-dev
-sudo /usr/local/bin/passenger-install-apache2-module -a
+passenger-install-apache2-module -a
 cat <<EOF | sudo tee /etc/apache2/mods-available/passenger.load
 # EDIT THIS FILE after install: /etc/apache2/mods-available/passenger.load
-#Edit your Apache configuration file, and add these lines (take the lines from installing, don't use the example below)
-LoadModule passenger_module /usr/local/lib/ruby/gems/1.8/gems/passenger-!!your version here!!/ext/apache2/mod_passenger.so
-PassengerRoot /usr/local/lib/ruby/gems/1.8/gems/passenger- !!your version here!!
-PassengerRuby /usr/local/bin/ruby
+# Edit your Apache configuration file, and add these lines (take the lines from installing, don't use the example below)
+
+# EXAMPLE that this may need to be updated for another patch level!
+
+LoadModule passenger_module /usr/local/rvm/gems/ruby-1.9.3-p362/gems/passenger-3.0.18/ext/apache2/mod_passenger.so
+PassengerRoot /usr/local/rvm/gems/ruby-1.9.3-p362/gems/passenger-3.0.18
+PassengerRuby /usr/local/rvm/wrappers/ruby-1.9.3-p362/ruby
 EOF
 echo    " ******** YOU MUST Enter the settings specified in the above instructions. ********"
 echo    "          Edit /etc/apache2/mods-available/passenger.load and restart apache"
@@ -109,7 +119,7 @@ sudo a2enmod rewrite passenger
 sudo a2dissite default
 sudo service apache2 restart
 
-echo "*** Securing the initiol mysql root account ***"
+echo "*** Securing the initial mysql root account ***"
 NEW_MYSQL_ROOT_PASSWORD=`head -c 100 /dev/urandom | md5sum | awk '{print substr($1,1,15)}'`
 mysql -u root mysql --execute "UPDATE mysql.user SET Password = PASSWORD(\"$NEW_MYSQL_ROOT_PASSWORD\") WHERE User = 'root'; FLUSH PRIVILEGES;"
 echo "MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT_PASSWORD" > ~/.mysqlrootpass
