@@ -55,7 +55,7 @@ cat <<EOF | sudo tee /etc/logrotate.d/passenger
 /vol/log/sv-lla-ecommerce/*.log {
         weekly
         missingok
-        rotate 30
+        rotate 416
         compress
         delaycompress
         sharedscripts
@@ -67,7 +67,7 @@ cat <<EOF | sudo tee /etc/logrotate.d/passenger
 /vol/log/backups/ebs-backup.log {
         weekly
         missingok
-        rotate 30
+        rotate 416
         compress
         delaycompress
         sharedscripts
@@ -164,9 +164,10 @@ ruby /home/ubuntu/bin/snapshot_deleter.rb \$EBS_VOLUME_ID \$KEEP_RECENT_N_SNAPSH
 echo "\$(date): Backup completed." | tee -a \$LOGFILE
 EOF
 chmod u+x ~/bin/backup_ebs.sh
-( crontab -l || test 0 ) | grep -v backup_ebs.sh > /tmp/wip_crontab  # don't let crontab -l have nonzero return code
+# assumes a crontab exists for root
+( sudo crontab -l || test 0 ) | grep -v backup_ebs.sh > /tmp/wip_crontab  # don't let crontab -l have nonzero return code
 echo "0 0 * * * /home/ubuntu/bin/backup_ebs.sh $EBS_VOLUME_ID" >> /tmp/wip_crontab
-crontab /tmp/wip_crontab
+sudo crontab /tmp/wip_crontab
 rm -f /tmp/wip_crontab
 
 echo " ******** Munin performance monitoring *********"
