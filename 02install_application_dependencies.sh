@@ -36,7 +36,7 @@ sudo chown -R deployer /home/deployer/.ssh/
 
 sudo cat /etc/sudoers | grep -v 'deployer ALL' | sudo tee -a /etc/sudoers.tmp
 sudo chmod 0440 /etc/sudoers.tmp
-echo "deployer ALL=(ALL) NOPASSWD:/bin/ln,/etc/init.d/apache2 restart" | sudo tee -a /etc/sudoers.tmp
+echo "deployer ALL=(ALL) NOPASSWD:/bin/ln,/etc/init.d/apache2" | sudo tee -a /etc/sudoers.tmp
 sudo mv /etc/sudoers.tmp /etc/sudoers
 
 sudo su -c "ssh-keygen -t rsa -f .ssh/id_rsa -P ''" - deployer
