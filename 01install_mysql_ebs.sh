@@ -6,6 +6,7 @@ VOLUME=$1
 
 if [ -z $VOLUME ]; then
     echo "You must specify the volume, like /dev/xvdb. /dev/sdf not used in newest kernal, thus xvd*"
+    echo "Find out whit your volume is by running 'dmesg' and looking for each of the xvd* devices, for root, ebs, and swap."
     echo "Linux Devices: /dev/sdb through /dev/sdp"
     echo "Note: Newer linux kernels may require you to map your devices to /dev/xvdb through /dev/xvdp instead."
     echo "See http://askubuntu.com/questions/47617/how-to-attach-new-ebs-volume-to-ubuntu-machine-on-aws"
