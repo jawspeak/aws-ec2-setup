@@ -41,7 +41,9 @@ echo "*** Created a fresh ssh key in /home/deployer/.ssh/id_rsa.pub, which you n
 echo "" && sudo cat /home/deployer/.ssh/id_rsa.pub && echo ""
 echo "Copy/paste the above into github to add the key as authorized for you: https://github.com/account/ssh"
 read -p "(I suggest doing this right now so you don't forget. Press Enter to continue.)"
+set +e #don't let this non-zero return code kill the script
 sudo su -c 'ssh -o "StrictHostKeyChecking no" git@github.com' - deployer  # accept their key, so cap deploy does not fail on us
+set -e
 
 # and might as well prevent root login from even connecting to prevent DOS when the /root/.ssh/authorized_keys message appears
 sudo sed -i -E "s|PermitRootLogin yes|PermitRootLogin no|" /etc/ssh/sshd_config
