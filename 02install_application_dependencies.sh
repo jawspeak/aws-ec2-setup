@@ -12,9 +12,6 @@ EBS_VOLUME_ID=$1
 EMAIL_ALERTS_ADDRESS=$2
 MUNIN_BASIC_AUTH_PASSWORD=$3
 
-echo "** Installing emacs for my sanity **"
-sudo apt-get install -y emacs
-
 echo "** Install scm **"
 sudo apt-get install -y git
 
