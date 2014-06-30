@@ -115,7 +115,7 @@ echo    "          (I use a capistrano task to load in all the apache virtual di
 read -p "          Press Enter to continue" # TODO this prompts and is not fully automated.
 
 sudo a2enmod rewrite passenger
-sudo a2dissite default
+sudo a2dissite default || true # in case it is not enabled. 0 return code.
 sudo service apache2 restart
 
 echo "*** Securing the initial mysql root account ***"
