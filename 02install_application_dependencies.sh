@@ -96,7 +96,7 @@ sudo apt-get install -y libcurl4-openssl-dev
 sudo apt-get install -y libssl-dev
 sudo apt-get install -y zlib1g-dev
 sudo apt-get install -y apache2-prefork-dev
-sudo apt-get install apache2-utils
+sudo apt-get install -y apache2-utils
 sudo apt-get install -y libapr1-dev
 sudo apt-get install -y libaprutil1-dev
 passenger-install-apache2-module -a
