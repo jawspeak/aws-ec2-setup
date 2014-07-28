@@ -65,6 +65,11 @@ create_mysql_database() {
 CREATE DATABASE IF NOT EXISTS $DATABASE_NAME;
 GRANT ALL PRIVILEGES  on $DATABASE_NAME.* to '$DATABASE_USER'@'%' identified by '$DATABASE_PASSWORD';
 EOF
+    # edit this if you want to easily be able to log into your mysql as root.
+    #[client]
+    #user = root
+    #password = <your pass>
+    #host = localhost
     touch ~/.my.cnf
     chmod 600 ~/.my.cnf
 }
