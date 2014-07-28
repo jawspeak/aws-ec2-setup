@@ -140,7 +140,7 @@ echo "*** Configuring backups for the ebs volume $EBS_VOLUME_ID ***"
 mkdir ~/bin
 sudo mkdir -p /vol/log/backups
 sudo chown ubuntu:ubuntu /vol/log/backups
-curl -s https://raw.github.com/jawspeak/aws-ec2-setup/master/snapshot_deleter.rb > ~/bin/snapshot_deleter.rb
+curl -sL https://raw.github.com/jawspeak/aws-ec2-setup/master/snapshot_deleter.rb > ~/bin/snapshot_deleter.rb
 cat <<EOF | tee ~/bin/backup_ebs.sh
 #!/bin/sh
 set -e
