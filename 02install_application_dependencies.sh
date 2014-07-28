@@ -163,9 +163,11 @@ ruby /home/ubuntu/bin/snapshot_deleter.rb \$EBS_VOLUME_ID \$KEEP_RECENT_N_SNAPSH
 echo "\$(date): Backup completed." | tee -a \$LOGFILE
 EOF
 chmod u+x ~/bin/backup_ebs.sh
-# assumes a crontab exists for root
+
+# we may not have a crontab for root (i expect we will not)
+set +e # don't worry about non-zero return codes for this, we may not have a crontab.
 ( sudo crontab -l || test 0 ) | grep -v backup_ebs.sh > /tmp/wip_crontab  # don't let crontab -l have nonzero return code
-echo "0 0 * * * /home/ubuntu/bin/backup_ebs.sh $EBS_VOLUME_ID" >> /tmp/wip_crontab
+set -e # care about errors again
 sudo crontab /tmp/wip_crontab
 rm -f /tmp/wip_crontab
 
