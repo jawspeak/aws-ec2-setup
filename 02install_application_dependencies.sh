@@ -187,7 +187,7 @@ sudo ln -s /usr/share/munin/plugins/mysql_* /etc/munin/plugins/
 sudo ln -s /usr/share/munin/plugins/netstat /etc/munin/plugins/
 sudo /etc/init.d/munin-node restart
 sudo htpasswd -c -b /etc/apache2/sites-available/munin.htpasswd-private admin $MUNIN_BASIC_AUTH_PASSWORD
-cat <<EOF | sudo tee /etc/apache2/sites-available/munin
+cat <<EOF | sudo tee /etc/apache2/sites-available/munin.conf
 NameVirtualHost *:8899
 Listen 8899
 <VirtualHost *:8899>
