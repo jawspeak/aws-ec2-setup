@@ -173,6 +173,7 @@ rm -f /tmp/wip_crontab
 
 echo " ******** Munin performance monitoring *********"
 sudo apt-get install -y munin munin-node
+# use sed to uncomment these lines
 sudo sed -i -E "s|#.*(dbdir.*/var/lib/munin)|\1|" /etc/munin/munin.conf
 sudo sed -i -E "s|#.*(htmldir.*/var/cache/munin/www)|\1|" /etc/munin/munin.conf
 sudo sed -i -E "s|#.*(logdir.*/var/log/munin)|\1|" /etc/munin/munin.conf
